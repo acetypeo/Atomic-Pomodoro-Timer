@@ -1,5 +1,5 @@
 # Atomic-Pomodoro-Timer
-with a visual Heatmap of your daily activities, consistent local save - export/import, 
+ 
 
 
 TIMER
