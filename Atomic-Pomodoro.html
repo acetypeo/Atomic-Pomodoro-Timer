@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dark Pomodoro Timer · Dynamic Heatmap</title>
+    <style>
+        /* ----- ORIGINAL STYLES (preserved exactly) ----- */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            gap: 20px;
+        }
+
+        .timer-section {
+            flex: 2;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .notes-section {
+            flex: 1;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2 {
+            color: #9c7aff;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            text-align: center;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            color: #4db8b8;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background-color: #4a3a80;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #5d4a9e;
+        }
+
+        button:disabled {
+            background-color: #3a3a3a;
+            cursor: not-allowed;
+        }
+
+        .settings {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .setting {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #9c7aff;
+        }
+
+        input {
+            background-color: #333;
+            border: 1px solid #444;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            width: 60px;
+            text-align: center;
+        }
+
+        .stats {
+            margin-top: 30px;
+        }
+
+        /* Sticky notes - original bold style */
+        .note {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .note.blue { background-color: #2c5282; }
+        .note.red { background-color: #742a2a; }
+        .note.yellow { background-color: #744210; }
+        .note textarea {
+            width: 100%;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            resize: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .note-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .note-btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        .color-btn.blue { background-color: #2c5282; }
+        .color-btn.red { background-color: #742a2a; }
+        .color-btn.yellow { background-color: #744210; }
+        .add-note {
+            margin-top: auto;
+            background-color: #2a6a6a;
+        }
+        .add-note:hover { background-color: #4db8b8; }
+
+        .session-info {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1.2rem;
+            color: #9c7aff;
+        }
+
+        .mode-indicator {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #4db8b8;
+        }
+
+        .activity-tracker {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #252525;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .activity-tracker h3 {
+            display: inline-block;
+            margin-right: 15px;
+        }
+
+        .toggle-history {
+            background-color: #4a3a80;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+        }
+        .toggle-history:hover { background-color: #5d4a9e; }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            align-items: center;
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .activity-time {
+            color: #9c7aff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .activity-type {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .study-activity { color: #4db8b8; }
+        .break-activity { color: #9c7aff; }
+        .session-note {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-left: 5px;
+            display: inline;
+        }
+        .edit-note {
+            color: #9c7aff;
+            cursor: pointer;
+            margin-left: 5px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        .delete-activity {
+            color: #ff6b6b;
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .hidden-count {
+            color: #aaa;
+            font-size: 0.9rem;
+            padding: 8px 0;
+        }
+        .data-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .export-btn { background-color: #2a6a6a; }
+        .import-btn { background-color: #4a3a80; }
+        .time-periods {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-radius: 5px;
+            flex-wrap: wrap;
+        }
+        .period-box {
+            text-align: center;
+        }
+        .period-label {
+            color: #9c7aff;
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+        .period-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+        }
+        .study-period { color: #4db8b8; }
+        .break-period { color: #9c7aff; }
+
+        /* ----- HORIZONTAL GITHUB-STYLE CONTRIBUTION GRID (dynamic, 4 levels) ----- */
+        .contrib-section {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .contrib-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+        .contrib-title {
+            font-weight: bold;
+            color: #9c7aff;
+            font-size: 1.2rem;
+        }
+        .year-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .year-nav button {
+            background-color: #2c2c2c;
+            padding: 4px 12px;
+            font-size: 0.9rem;
+        }
+        .year-nav span {
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4db8b8;
+        }
+        .grid-scroll {
+            overflow-x: auto;
+            overflow-y: visible;
+            padding-bottom: 20px;
+            margin-bottom: 5px;
+        }
+        .github-grid {
+            display: flex;
+            gap: 3px;
+            min-width: fit-content;
+        }
+        .week-column {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            width: 19px;
+        }
+        .day-cell {
+            width: 16px;
+            height: 16px;
+            background-color: #2a2a2a;
+            border-radius: 3px;
+            transition: transform 0.05s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .day-cell:hover {
+            transform: scale(1.2);
+            filter: brightness(1.2);
+        }
+        /* Shin Godzilla gradient: 4 levels (1-4) + zero (0), single purple hue */
+        .heat-0 { background-color: #2a2a2a; }
+        .heat-1 { background-color: #3b2a5c; }  /* deep muted violet (<25%) */
+        .heat-2 { background-color: #5a3d8c; }  /* medium violet (25-50%) */
+        .heat-3 { background-color: #8b5cf6; }  /* bright violet (50-75%) */
+        .heat-4 { background-color: #c084fc; }  /* intense neon violet (≥75%) */
+
+        /* today highlight: pulsing white/grey border */
+        .day-cell.today-highlight {
+            box-shadow: 0 0 0 2px rgba(220, 220, 255, 0.7);
+            animation: gentlePulse 2s ease-in-out infinite;
+            z-index: 2;
+        }
+        @keyframes gentlePulse {
+            0% { box-shadow: 0 0 0 1px rgba(200, 200, 230, 0.4); }
+            50% { box-shadow: 0 0 0 3px rgba(220, 220, 255, 0.9); }
+            100% { box-shadow: 0 0 0 1px rgba(200, 200, 230, 0.4); }
+        }
+
+        .month-labels {
+            display: flex;
+            margin-left: 28px;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+        .month-label-item {
+            width: 19px;
+            text-align: left;
+            white-space: nowrap;
+            margin-right: 3px;
+        }
+        .weekday-names {
+            display: flex;
+            flex-direction: column;
+            width: 28px;
+            margin-right: 8px;
+            font-size: 0.65rem;
+            color: #aaa;
+            gap: 3px;
+            justify-content: space-around;
+        }
+        .weekday-name {
+            height: 16px;
+            line-height: 16px;
+            text-align: right;
+        }
+        .grid-wrapper {
+            display: flex;
+        }
+        .legend {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-size: 0.7rem;
+            color: #bbb;
+        }
+        .legend-squares {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .legend-square {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            cursor: help;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #e0e0e0;
+            border: 1px solid #4a3a80;
+        }
+        .modal-content h3 {
+            color: #9c7aff;
+            margin-top: 0;
+        }
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #aaa;
+            padding: 0;
+        }
+        .modal-close:hover { color: #ff6b6b; }
+        .session-detail-item {
+            border-bottom: 1px solid #333;
+            padding: 8px 0;
+        }
+
+        #fileInput { display: none; }
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .weekday-name { font-size: 0.55rem; }
+            .day-cell { width: 14px; height: 14px; }
+            .week-column { gap: 2px; width: 17px; }
+            .month-label-item { width: 17px; margin-right: 2px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="timer-section">
+        <h1>Pomodoro Timer</h1>
+        <div class="mode-indicator" id="modeIndicator">Study Time</div>
+        <div class="timer-display" id="timer">25:00</div>
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn" disabled>Pause</button>
+            <button id="resetBtn">Reset</button>
+            <button id="skipBtn">Skip</button>
+            <button id="startBreakBtn" disabled>Start Break</button>
+        </div>
+        <div class="settings">
+            <div class="setting"><label for="studyTime">Study (minutes)</label><input type="number" id="studyTime" min="1" max="120" value="25"></div>
+            <div class="setting"><label for="breakTime">Break (minutes)</label><input type="number" id="breakTime" min="1" max="30" value="5"></div>
+        </div>
+        <div class="session-info">Sessions completed today: <span id="sessionCount">0</span></div>
+
+        <div class="stats">
+            <h2>Time Summary</h2>
+            <div class="time-periods">
+                <div class="period-box"><div class="period-label">Past Day</div><div class="period-value study-period" id="dayStudyTime">0h 0m</div><div class="period-value break-period" id="dayBreakTime">0h 0m</div></div>
+                <div class="period-box"><div class="period-label">Past Week</div><div class="period-value study-period" id="weekStudyTime">0h 0m</div><div class="period-value break-period" id="weekBreakTime">0h 0m</div></div>
+                <div class="period-box"><div class="period-label">Past Month</div><div class="period-value study-period" id="monthStudyTime">0h 0m</div><div class="period-value break-period" id="monthBreakTime">0h 0m</div></div>
+                <div class="period-box"><div class="period-label">Past Year</div><div class="period-value study-period" id="yearStudyTime">0h 0m</div><div class="period-value break-period" id="yearBreakTime">0h 0m</div></div>
+            </div>
+
+            <!-- CONTRIBUTION GRID (dynamic, 4 levels, with standard title tooltips) -->
+            <div class="contrib-section">
+                <div class="contrib-header">
+                    <span class="contrib-title">📅 Study activity heatmap</span>
+                    <div class="year-nav">
+                        <button id="prevYearBtn">←</button>
+                        <span id="gridYearLabel">2025</span>
+                        <button id="nextYearBtn">→</button>
+                    </div>
+                </div>
+                <div class="grid-scroll" id="gridScroll">
+                    <div id="contributionGrid"></div>
+                </div>
+                <div class="legend">
+                    <span>Less</span>
+                    <div class="legend-squares" id="legendSquares"></div>
+                    <span>More</span>
+                </div>
+            </div>
+
+            <div class="activity-tracker">
+                <h3>Session History</h3>
+                <button class="toggle-history" id="toggleHistory">Show All</button>
+                <div id="activityLog"></div>
+                <div class="data-actions">
+                    <button class="export-btn" id="exportBtn">Export Data</button>
+                    <button class="import-btn" id="importBtn">Import Data</button>
+                    <input type="file" id="fileInput" accept=".json">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notes-section">
+        <h2>Sticky Notes</h2>
+        <div id="notesContainer"></div>
+        <button class="add-note" id="addNoteBtn">Add Note</button>
+    </div>
+</div>
+
+<!-- Modal for day details -->
+<div id="dayModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" id="closeModalBtn">&times;</button>
+        <h3 id="modalDateTitle"></h3>
+        <div id="modalSessionList"></div>
+    </div>
+</div>
+
+<script>
+    // ---------- TIMER & CORE STATE (preserved exactly) ----------
+    let timer;
+    let timeLeft = 25 * 60;
+    let isRunning = false;
+    let isStudyTime = true;
+    let sessionsCompleted = 0;
+    let studySessions = [];
+    let breakSessions = [];
+    let activityLog = [];
+    let stickyNotes = [];
+
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const startBreakBtn = document.getElementById('startBreakBtn');
+    const studyTimeInput = document.getElementById('studyTime');
+    const breakTimeInput = document.getElementById('breakTime');
+    const modeIndicator = document.getElementById('modeIndicator');
+    const sessionCountDisplay = document.getElementById('sessionCount');
+    const notesContainer = document.getElementById('notesContainer');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const activityLogElement = document.getElementById('activityLog');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const fileInput = document.getElementById('fileInput');
+    const toggleHistoryBtn = document.getElementById('toggleHistory');
+
+    const dayStudyTimeElement = document.getElementById('dayStudyTime');
+    const dayBreakTimeElement = document.getElementById('dayBreakTime');
+    const weekStudyTimeElement = document.getElementById('weekStudyTime');
+    const weekBreakTimeElement = document.getElementById('weekBreakTime');
+    const monthStudyTimeElement = document.getElementById('monthStudyTime');
+    const monthBreakTimeElement = document.getElementById('monthBreakTime');
+    const yearStudyTimeElement = document.getElementById('yearStudyTime');
+    const yearBreakTimeElement = document.getElementById('yearBreakTime');
+
+    // ---------- CONTRIBUTION GRID (dynamic value thresholds, 4 heat levels) ----------
+    let currentGridYear = new Date().getFullYear();
+    const gridYearLabel = document.getElementById('gridYearLabel');
+    const contributionGridContainer = document.getElementById('contributionGrid');
+    const legendSquares = document.getElementById('legendSquares');
+
+    function getDailyStudyMinutesForYear(year) {
+        const dailyMap = new Map();
+        studySessions.forEach(session => {
+            const dateObj = new Date(session.completedAt);
+            if (dateObj.getFullYear() === year) {
+                const key = dateObj.toISOString().slice(0,10);
+                const mins = session.duration;
+                dailyMap.set(key, (dailyMap.get(key) || 0) + mins);
+            }
+        });
+        return dailyMap;
+    }
+
+    // 4 heat levels based on quartiles (0, 1-25%, 25-50%, 50-75%, 75-100%)
+    function getHeatLevel(minutes, maxDaily) {
+        if (minutes === 0) return 0;
+        if (maxDaily === 0) return 0;
+        const percent = minutes / maxDaily;
+        if (percent < 0.25) return 1;
+        if (percent < 0.5) return 2;
+        if (percent < 0.75) return 3;
+        return 4;
+    }
+
+    function renderHorizontalContributionGrid(year) {
+        const dailyMinutes = getDailyStudyMinutesForYear(year);
+        let maxMinutes = 0;
+        for (let mins of dailyMinutes.values()) if (mins > maxMinutes) maxMinutes = mins;
+        if (maxMinutes === 0) maxMinutes = 1;
+
+        // Build weeks starting from first Monday of the year
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        let firstMonday = new Date(startDate);
+        while (firstMonday.getDay() !== 1) firstMonday.setDate(firstMonday.getDate() - 1);
+        
+        let weeks = [];
+        let current = new Date(firstMonday);
+        let week = [];
+        while (current <= endDate || week.length > 0) {
+            if (week.length === 7) {
+                weeks.push([...week]);
+                week = [];
+            }
+            if (current <= endDate) {
+                week.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            } else if (week.length > 0) {
+                while (week.length < 7) week.push(null);
+                weeks.push([...week]);
+                week = [];
+            }
+        }
+        
+        // Month labels
+        let weekMonths = weeks.map(w => {
+            for (let d of w) if (d && d.getFullYear() === year) return d.getMonth();
+            return -1;
+        });
+        let monthSpans = [];
+        let idx = 0;
+        while (idx < weekMonths.length) {
+            let curMonth = weekMonths[idx];
+            if (curMonth === -1) { idx++; continue; }
+            let end = idx;
+            while (end+1 < weekMonths.length && weekMonths[end+1] === curMonth) end++;
+            monthSpans.push({ month: curMonth, weeksCount: end - idx + 1 });
+            idx = end + 1;
+        }
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let monthLabelsHtml = `<div class="month-labels">`;
+        for (let span of monthSpans) {
+            const widthPx = span.weeksCount * 19;
+            monthLabelsHtml += `<div class="month-label-item" style="width: ${widthPx}px; margin-right: 3px;">${monthNames[span.month]}</div>`;
+        }
+        monthLabelsHtml += `</div>`;
+
+        const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        let weekdaysHtml = `<div class="weekday-names">`;
+        weekdays.forEach(day => weekdaysHtml += `<div class="weekday-name">${day}</div>`);
+        weekdaysHtml += `</div>`;
+
+        let gridHtml = `<div class="github-grid">`;
+        const todayStr = new Date().toISOString().slice(0,10);
+        for (let w = 0; w < weeks.length; w++) {
+            gridHtml += `<div class="week-column">`;
+            for (let d = 0; d < 7; d++) {
+                const dateObj = weeks[w][d];
+                if (dateObj && dateObj.getFullYear() === year) {
+                    const key = dateObj.toISOString().slice(0,10);
+                    const minutes = dailyMinutes.get(key) || 0;
+                    const level = getHeatLevel(minutes, maxMinutes);
+                    const isToday = (key === todayStr);
+                    const title = `${key}: ${minutes} min studied (heat ${level})`;
+                    const todayClass = isToday ? 'today-highlight' : '';
+                    gridHtml += `<div class="day-cell heat-${level} ${todayClass}" data-date="${key}" title="${title}"></div>`;
+                } else {
+                    gridHtml += `<div class="day-cell heat-0" style="opacity:0.2; cursor:default;"></div>`;
+                }
+            }
+            gridHtml += `</div>`;
+        }
+        gridHtml += `</div>`;
+
+        contributionGridContainer.innerHTML = `<div class="grid-wrapper">${weekdaysHtml}<div>${monthLabelsHtml}${gridHtml}</div></div>`;
+        gridYearLabel.innerText = year;
+
+        // attach click listeners
+        document.querySelectorAll('.day-cell[data-date]').forEach(cell => {
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dateStr = cell.getAttribute('data-date');
+                showDayDetails(dateStr);
+            });
+        });
+    }
+
+    // Build legend with standard title tooltips for 4 levels (0-4)
+    function buildLegend() {
+        const levels = [
+            { heat: 0, rule: "0 minutes" },
+            { heat: 1, rule: ">0% to <25% of year's max daily minutes" },
+            { heat: 2, rule: "25% to <50% of year's max daily minutes" },
+            { heat: 3, rule: "50% to <75% of year's max daily minutes" },
+            { heat: 4, rule: "≥75% of year's max daily minutes" }
+        ];
+        legendSquares.innerHTML = '';
+        levels.forEach(l => {
+            const square = document.createElement('div');
+            square.className = `legend-square heat-${l.heat}`;
+            square.title = l.rule;
+            legendSquares.appendChild(square);
+        });
+    }
+
+    function showDayDetails(dateStr) {
+        const sessions = activityLog.filter(log => {
+            const logDate = new Date(log.timestamp).toISOString().slice(0,10);
+            return logDate === dateStr;
+        }).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        const modal = document.getElementById('dayModal');
+        const modalTitle = document.getElementById('modalDateTitle');
+        const modalList = document.getElementById('modalSessionList');
+        modalTitle.textContent = `📅 ${dateStr}`;
+        if (sessions.length === 0) {
+            modalList.innerHTML = '<p>No study or break sessions recorded on this day.</p>';
+        } else {
+            let html = '';
+            sessions.forEach(s => {
+                const typeEmoji = s.type === 'study' ? '📘' : '☕';
+                const noteText = s.note ? `<br><span style="color:#aaa; font-size:0.85rem;">✏️ Note: ${escapeHtml(s.note)}</span>` : '';
+                html += `<div class="session-detail-item">
+                            <strong>${typeEmoji} ${s.type === 'study' ? 'Study' : 'Break'}</strong> – ${s.duration} min
+                            <span style="color:#9c7aff;">${new Date(s.timestamp).toLocaleTimeString()}</span>
+                            ${noteText}
+                         </div>`;
+            });
+            modalList.innerHTML = html;
+        }
+        modal.style.display = 'flex';
+    }
+
+    function refreshGrid() {
+        renderHorizontalContributionGrid(currentGridYear);
+    }
+
+    // ----- ALL ORIGINAL FUNCTIONS (preserved exactly) -----
+    function loadFromStorage() {
+        const savedData = localStorage.getItem('pomodoroData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                studySessions = data.studySessions || [];
+                breakSessions = data.breakSessions || [];
+                sessionsCompleted = data.sessionsCompleted || 0;
+                activityLog = data.activityLog || [];
+                stickyNotes = data.stickyNotes || [];
+                sessionCountDisplay.textContent = sessionsCompleted;
+                updateTimePeriods();
+                updateActivityLogDisplay();
+                renderStickyNotes();
+                refreshGrid();
+            } catch(e) { console.error(e); }
+        }
+    }
+
+    function saveToStorage() {
+        saveNotesToData();
+        const data = { studySessions, breakSessions, sessionsCompleted, activityLog, stickyNotes };
+        localStorage.setItem('pomodoroData', JSON.stringify(data));
+    }
+
+    function saveNotesToData() {
+        stickyNotes = [];
+        document.querySelectorAll('.note').forEach(note => {
+            const id = note.getAttribute('data-id');
+            const textarea = note.querySelector('textarea');
+            const color = Array.from(note.classList).find(cls => cls === 'blue' || cls === 'red' || cls === 'yellow') || 'blue';
+            stickyNotes.push({ id, text: textarea.value, color });
+        });
+    }
+
+    function exportData() {
+        saveNotesToData();
+        const data = { studySessions, breakSessions, sessionsCompleted, activityLog, stickyNotes, exportedAt: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pomodoro-data-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                studySessions = [...studySessions, ...(data.studySessions || [])];
+                breakSessions = [...breakSessions, ...(data.breakSessions || [])];
+                sessionsCompleted += data.sessionsCompleted || 0;
+                activityLog = [...activityLog, ...(data.activityLog || [])];
+                activityLog.sort((a,b) => new Date(b.timestamp || b.completedAt || b.time) - new Date(a.timestamp || a.completedAt || a.time));
+                notesContainer.innerHTML = '';
+                if (data.stickyNotes && data.stickyNotes.length > 0) {
+                    data.stickyNotes.forEach(note => addNote(note.color, note.text, note.id));
+                } else { addNote('blue'); }
+                sessionCountDisplay.textContent = sessionsCompleted;
+                updateTimePeriods();
+                updateActivityLogDisplay();
+                saveToStorage();
+                refreshGrid();
+                alert(`Successfully imported!`);
+            } catch(err) { alert("Invalid file"); }
+        };
+        reader.readAsText(file);
+    }
+
+    function updateDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() { if (!isRunning) { isRunning = true; startBtn.disabled = true; pauseBtn.disabled = false; startBreakBtn.disabled = true; timer = setInterval(() => { timeLeft--; updateDisplay(); if (timeLeft <= 0) { clearInterval(timer); isRunning = false; handleTimerComplete(); } }, 1000); } }
+    function pauseTimer() { clearInterval(timer); isRunning = false; startBtn.disabled = false; pauseBtn.disabled = true; startBreakBtn.disabled = isStudyTime; }
+    function resetTimer() { pauseTimer(); isStudyTime = true; modeIndicator.textContent = 'Study Time'; modeIndicator.style.color = '#4db8b8'; timeLeft = parseInt(studyTimeInput.value) * 60; updateDisplay(); startBreakBtn.disabled = true; }
+    function skipSession() { pauseTimer(); handleTimerComplete(); }
+    function startBreak() { if (!isRunning && isStudyTime) { const minutesCompleted = parseInt(studyTimeInput.value) - Math.ceil(timeLeft / 60); if (minutesCompleted > 0) { studySessions.push({ duration: minutesCompleted, completedAt: new Date() }); addActivityLog('study', minutesCompleted, new Date()); } isStudyTime = false; modeIndicator.textContent = 'Break Time'; modeIndicator.style.color = '#9c7aff'; timeLeft = parseInt(breakTimeInput.value) * 60; updateDisplay(); startBreakBtn.disabled = true; playSound('break'); updateTimePeriods(); saveToStorage(); refreshGrid(); } }
+    
+    function handleTimerComplete() {
+        const now = new Date();
+        const sessionDuration = isStudyTime ? parseInt(studyTimeInput.value) : parseInt(breakTimeInput.value);
+        if (isStudyTime) {
+            studySessions.push({ duration: sessionDuration, completedAt: now });
+            addActivityLog('study', sessionDuration, now);
+            isStudyTime = false; modeIndicator.textContent = 'Break Time'; modeIndicator.style.color = '#9c7aff'; timeLeft = parseInt(breakTimeInput.value) * 60;
+            playSound('break');
+        } else {
+            breakSessions.push({ duration: sessionDuration, completedAt: now });
+            addActivityLog('break', sessionDuration, now);
+            isStudyTime = true; modeIndicator.textContent = 'Study Time'; modeIndicator.style.color = '#4db8b8'; timeLeft = parseInt(studyTimeInput.value) * 60; sessionsCompleted++; sessionCountDisplay.textContent = sessionsCompleted;
+            playSound('study');
+        }
+        updateTimePeriods(); updateDisplay(); startBreakBtn.disabled = isStudyTime || isRunning; saveToStorage(); refreshGrid();
+        if (isRunning) startTimer();
+    }
+
+    function addActivityLog(type, duration, timestamp = new Date()) {
+        const timeString = timestamp.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const dateString = timestamp.toLocaleDateString();
+        activityLog.unshift({ type, duration, time: timeString, date: dateString, timestamp: timestamp.toISOString(), note: "" });
+        updateActivityLogDisplay(); saveToStorage(); updateTimePeriods(); refreshGrid();
+    }
+
+    function removeActivity(index) {
+        const activity = activityLog[index]; if (!activity) return;
+        if (activity.type === 'study') {
+            const sessionIndex = studySessions.findIndex(s => s.duration === activity.duration && new Date(s.completedAt).getTime() === new Date(activity.timestamp).getTime());
+            if (sessionIndex !== -1) studySessions.splice(sessionIndex, 1);
+            if (isStudyTime) { sessionsCompleted = Math.max(0, sessionsCompleted-1); sessionCountDisplay.textContent = sessionsCompleted; }
+        } else {
+            const sessionIndex = breakSessions.findIndex(s => s.duration === activity.duration && new Date(s.completedAt).getTime() === new Date(activity.timestamp).getTime());
+            if (sessionIndex !== -1) breakSessions.splice(sessionIndex, 1);
+        }
+        activityLog.splice(index,1);
+        updateTimePeriods(); updateActivityLogDisplay(); saveToStorage(); refreshGrid();
+    }
+
+    function updateActivityLogDisplay() {
+        activityLogElement.innerHTML = '';
+        const showAll = toggleHistoryBtn.textContent === 'Show Less';
+        const displayCount = showAll ? activityLog.length : Math.min(5, activityLog.length);
+        for (let i=0; i<displayCount; i++) createActivityItem(activityLog[i], i);
+        if (activityLog.length > 5 && !showAll) {
+            const hiddenInfo = document.createElement('div'); hiddenInfo.className = 'hidden-count';
+            hiddenInfo.textContent = `+ ${activityLog.length-5} older sessions hidden`;
+            activityLogElement.appendChild(hiddenInfo);
+        }
+        toggleHistoryBtn.style.display = activityLog.length <= 5 ? 'none' : 'inline-block';
+    }
+    function createActivityItem(activity, index) {
+        const activityItem = document.createElement('div'); activityItem.className = 'activity-item';
+        const activityInfo = document.createElement('div'); activityInfo.className = 'activity-info';
+        const typeSpan = document.createElement('span'); typeSpan.className = `activity-type ${activity.type}-activity`; typeSpan.textContent = activity.type === 'study' ? 'Study' : 'Break';
+        const durationSpan = document.createElement('span'); durationSpan.textContent = `${activity.duration} min`;
+        const timeSpan = document.createElement('span'); timeSpan.className = 'activity-time'; timeSpan.textContent = `${activity.date} ${activity.time}`;
+        if (activity.note) { const noteSpan = document.createElement('span'); noteSpan.className = 'session-note'; noteSpan.textContent = `- ${activity.note}`; activityInfo.appendChild(noteSpan); }
+        const editNote = document.createElement('span'); editNote.className = 'edit-note'; editNote.textContent = activity.note ? '[edit]' : '[add note]';
+        editNote.addEventListener('click', () => { const note = prompt(activity.note ? "Edit session note:" : "Add session note:", activity.note || ""); if (note !== null) { activity.note = note; saveToStorage(); updateActivityLogDisplay(); refreshGrid(); } });
+        const deleteSpan = document.createElement('span'); deleteSpan.className = 'delete-activity'; deleteSpan.textContent = '×'; deleteSpan.addEventListener('click', () => removeActivity(index));
+        activityInfo.append(typeSpan, durationSpan, timeSpan, editNote); activityItem.append(activityInfo, deleteSpan); activityLogElement.appendChild(activityItem);
+    }
+
+    function playSound(type) { const audio = new Audio(type === 'study' ? 'https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3' : 'https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.mp3'); audio.play(); }
+    
+    function updateTimePeriods() {
+        const now = new Date(); const dayAgo = new Date(now.getTime() - 24*3600000); const weekAgo = new Date(now.getTime() - 7*24*3600000); const monthAgo = new Date(now.getTime() - 30*24*3600000); const yearAgo = new Date(now.getTime() - 365*24*3600000);
+        const sum = (arr, filterDate) => arr.filter(s => new Date(s.completedAt) > filterDate).reduce((a,c)=> a + c.duration,0);
+        const fmt = m => `${Math.floor(m/60)}h ${m%60}m`;
+        dayStudyTimeElement.textContent = fmt(sum(studySessions, dayAgo)); dayBreakTimeElement.textContent = fmt(sum(breakSessions, dayAgo));
+        weekStudyTimeElement.textContent = fmt(sum(studySessions, weekAgo)); weekBreakTimeElement.textContent = fmt(sum(breakSessions, weekAgo));
+        monthStudyTimeElement.textContent = fmt(sum(studySessions, monthAgo)); monthBreakTimeElement.textContent = fmt(sum(breakSessions, monthAgo));
+        yearStudyTimeElement.textContent = fmt(sum(studySessions, yearAgo)); yearBreakTimeElement.textContent = fmt(sum(breakSessions, yearAgo));
+    }
+
+    function addNote(color='blue', text='', id=Date.now()) {
+        const note = document.createElement('div'); note.className = `note ${color}`; note.setAttribute('data-id', id);
+        note.innerHTML = `<textarea placeholder="Write your note here...">${escapeHtml(text)}</textarea><div class="note-controls"><div><button class="note-btn color-btn blue" data-note="${id}" data-color="blue">Blue</button><button class="note-btn color-btn red" data-note="${id}" data-color="red">Red</button><button class="note-btn color-btn yellow" data-note="${id}" data-color="yellow">Yellow</button></div><button class="note-btn delete-btn" data-note="${id}">Delete</button></div>`;
+        notesContainer.appendChild(note); if (!text) note.querySelector('textarea').focus();
+        note.querySelector('textarea').addEventListener('input', () => saveToStorage());
+    }
+    function renderStickyNotes() { notesContainer.innerHTML = ''; if (stickyNotes.length) stickyNotes.forEach(n => addNote(n.color, n.text, n.id)); else addNote('blue'); }
+    function changeNoteColor(noteId, color) { const note = document.querySelector(`.note[data-id="${noteId}"]`); if (note) { note.classList.remove('blue','red','yellow'); note.classList.add(color); saveToStorage(); } }
+    function deleteNote(noteId) { document.querySelector(`.note[data-id="${noteId}"]`)?.remove(); saveToStorage(); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+
+    // Event listeners
+    startBtn.addEventListener('click', startTimer); pauseBtn.addEventListener('click', pauseTimer); resetBtn.addEventListener('click', resetTimer); skipBtn.addEventListener('click', skipSession); startBreakBtn.addEventListener('click', startBreak);
+    exportBtn.addEventListener('click', exportData); importBtn.addEventListener('click', () => fileInput.click()); fileInput.addEventListener('change', e => { if(e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; });
+    toggleHistoryBtn.addEventListener('click', function() { this.textContent = this.textContent === 'Show All' ? 'Show Less' : 'Show All'; updateActivityLogDisplay(); });
+    studyTimeInput.addEventListener('change', () => { if(!isRunning && isStudyTime) { timeLeft = parseInt(studyTimeInput.value)*60; updateDisplay(); } });
+    breakTimeInput.addEventListener('change', () => { if(!isRunning && !isStudyTime) { timeLeft = parseInt(breakTimeInput.value)*60; updateDisplay(); } });
+    addNoteBtn.addEventListener('click', () => addNote());
+    notesContainer.addEventListener('click', (e) => { if(e.target.classList.contains('color-btn')) changeNoteColor(e.target.getAttribute('data-note'), e.target.getAttribute('data-color')); else if(e.target.classList.contains('delete-btn')) deleteNote(e.target.getAttribute('data-note')); });
+    document.getElementById('prevYearBtn').addEventListener('click', () => { currentGridYear--; renderHorizontalContributionGrid(currentGridYear); });
+    document.getElementById('nextYearBtn').addEventListener('click', () => { currentGridYear++; renderHorizontalContributionGrid(currentGridYear); });
+    document.getElementById('closeModalBtn').addEventListener('click', () => { document.getElementById('dayModal').style.display = 'none'; });
+    window.addEventListener('click', (e) => { const modal = document.getElementById('dayModal'); if (e.target === modal) modal.style.display = 'none'; });
+
+    // Initialize
+    buildLegend();
+    loadFromStorage(); resetTimer(); if(stickyNotes.length === 0) addNote('blue'); refreshGrid();
+</script>
+</body>
+</html>
