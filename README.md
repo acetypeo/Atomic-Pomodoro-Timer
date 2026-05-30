@@ -1,6 +1,5 @@
 # Atomic-Pomodoro-Timer
-# official link 
-https://acetypeo.github.io/Atomic-Pomodoro-Timer/
+# official link https://acetypeo.github.io/Atomic-Pomodoro-Timer/
 
 
 
