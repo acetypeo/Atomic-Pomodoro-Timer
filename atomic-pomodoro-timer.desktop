@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Atomic Pomodoro Timer
+Comment=A focus timer with a visual heatmap of your daily activities
+Exec=atomic-pomodoro-timer
+Icon=atomic-pomodoro-timer
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true
